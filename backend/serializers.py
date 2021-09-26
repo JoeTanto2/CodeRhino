@@ -1,0 +1,56 @@
+from rest_framework import serializers
+from .models import CustomUser
+import re
+from . import google
+from decouple import config
+from rest_framework.exceptions import AuthenticationFailed
+from .managers import CustomUserManager
+from .register import social_user_registration
+
+class SignUpSerializer (serializers.ModelSerializer):
+    username = serializers.CharField(required=True)
+    email = serializers.CharField(required=True)
+    profile_pic = serializers.ImageField(required=False)
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'username', 'password', 'profile_pic']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def create (self, validated_data):
+        re_email = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email = validated_data['email']
+        if email:
+            if CustomUser.objects.filter(email=email).exists():
+                raise serializers.ValidationError('An account with this email already exists')
+            if(re.fullmatch(re_email, email)):
+                instance = self.Meta.model(**validated_data)
+                instance.set_password(validated_data['password'])
+                instance.save()
+                return instance
+            else:
+                message = 'The email is not valid! Please enter a valid email.'
+                raise serializers.ValidationError(message)
+
+
+class GoogleSerializer (serializers.Serializer):
+    auth_token = serializers.CharField()
+
+    def validate_auth_token (self, auth_token):
+        user_data = google.Google.validate(auth_token)
+        try:
+            user_data['sub']
+        except:
+            raise serializers.ValidationError(
+                'The token is invalid or expired. Please login again.'
+            )
+        if user_data['aud'] != config('GOOGLE_CLIENT_ID'):
+            raise AuthenticationFailed ('How?')
+
+        user_id = user_data['sub']
+        email = user_data['email']
+        name = user_data['name']
+        provider = 'google'
+        return social_user_registration(user_id, provider, name, email)
+
