@@ -1,9 +1,9 @@
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Servers
 import re
 from . import google
 from decouple import config
-from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from .managers import CustomUserManager
 from .register import social_user_registration
 
@@ -54,3 +54,21 @@ class GoogleSerializer (serializers.Serializer):
         provider = 'google'
         return social_user_registration(user_id, provider, name, email)
 
+class ServerCreationSerializer (serializers.ModelSerializer):
+    server_picture = serializers.ImageField(required=False)
+    class Meta:
+        model = Servers
+        fields = ['admin', 'server_name', 'server_picture']
+
+    def create(self, validated_data):
+        server_name = validated_data['server_name'].lower()
+        name_check = Servers.objects.filter(server_name=server_name).first()
+        if name_check:
+            raise ValidationError(
+                'Channel with this name already exists!'
+            )
+        validated_data['server_name'] = server_name
+        instance = self.Meta.model(**validated_data)
+        instance.save()
+        instance.user_id.add(instance.admin)
+        return instance

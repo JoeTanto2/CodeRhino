@@ -3,27 +3,8 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from .managers import CustomUserManager
 from rest_framework_simplejwt.tokens import RefreshToken
 
-# class CustomUserManager(BaseUserManager):
-#     def create_user(self, email, password, **extra_fields):
-#         if not email:
-#             raise ValueError('The Email must be set')
-#         if not password:
-#             raise ValueError('Password must be set')
-#         email = self.normalize_email(email)
-#         user = self.model(email=email, **extra_fields)
-#         user.set_password(password)
-#         user.save(using=self._db)
-#         return user
-#
-#     def create_superuser(self, email, password, **extra_fields):
-#         extra_fields.setdefault('is_staff', True)
-#         extra_fields.setdefault('is_superuser', True)
-#         extra_fields.setdefault('is_active', True)
-#         if extra_fields.get('is_staff') is not True:
-#             raise ValueError('Superuser must have is_staff=True.')
-#         if extra_fields.get('is_superuser') is not True:
-#             raise ValueError('Superuser must have is_superuser=True.')
-#         return self.create_user(email, password, **extra_fields)
+
+
 providers = {'google': 'google', 'apple': 'apple', 'email': 'email', 'facebook': 'facebook', 'twitter': 'twitter'}
 class CustomUser (AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50)
@@ -40,9 +21,33 @@ class CustomUser (AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
 
+    def __str__(self):
+        return self.email
+
     def token_generator(self):
         refresh = RefreshToken.for_user(self)
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token)
         }
+
+
+class Servers (models.Model):
+    user_id = models.ManyToManyField(CustomUser)
+    admin = models.IntegerField()
+    server_name = models.CharField(max_length=100)
+    server_picture = models.ImageField(blank=True)
+    created_on = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return self.server_name
+
+
+
+class TextChannels (models.Model):
+    server_id = models.ForeignKey(Servers, on_delete=models.CASCADE)
+    channel_name = models.CharField(max_length=100)
+    users_online = models.ManyToManyField(CustomUser)
+
+    def __str__(self):
+        return f"{self.channel_name} id: {self.server_id.id}"
