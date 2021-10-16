@@ -7,6 +7,7 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from .managers import CustomUserManager
 from .register import social_user_registration
 
+
 class SignUpSerializer (serializers.ModelSerializer):
     username = serializers.CharField(required=True)
     email = serializers.CharField(required=True)
@@ -36,7 +37,6 @@ class SignUpSerializer (serializers.ModelSerializer):
 
 class GoogleSerializer (serializers.Serializer):
     auth_token = serializers.CharField()
-
     def validate_auth_token (self, auth_token):
         user_data = google.Google.validate(auth_token)
         try:

@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from .models import CustomUser
 from decouple import config
 import random
+from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 def generate_username(name):
 
@@ -20,7 +21,7 @@ def social_user_registration (user_id, provider, name, email):
             return {
                 'username': user.username,
                 'email': user.email,
-                'tokens': user.token_generator()
+                'access_token': user.token_generator()['access_token']
             }
         else:
             raise AuthenticationFailed(detail=f"You have already registered an account, please login with your {if_exists[0].authentication_type} account!")
@@ -32,14 +33,14 @@ def social_user_registration (user_id, provider, name, email):
                 }
         user = CustomUser.objects.create_user(**user)
         user.is_email_verified = True
-        user.provider = True
         user.save()
-
         new_user = authenticate(email=email, password=config('SOCIAL_SECRET'))
-        return {
+        to_return = {
             'email': new_user.email,
             'username': new_user.username,
-            'tokens': new_user.token_generator()
+            'provider': new_user.authentication_type,
+            "access_token": new_user.token_generator()['access_token']
         }
+        return to_return
 
 

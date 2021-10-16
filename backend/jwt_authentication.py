@@ -8,5 +8,4 @@ class CustomJWT (JWTAuthentication):
         if not token:
             return None
         validated_token = self.get_validated_token(token)
-        print(validated_token)
         return self.get_user(validated_token), validated_token

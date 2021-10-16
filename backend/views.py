@@ -40,10 +40,17 @@ class LogIn (APIView):
 @api_view(['POST'])
 def googleAuth (request):
     serializer = GoogleSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    data = ((serializer.validated_data)['auth_token'])
-    return Response(data)
-
+    if serializer.is_valid(raise_exception=True):
+        data = (serializer.validated_data['auth_token'])
+        response = Response(status=status.HTTP_201_CREATED)
+        to_return = {
+            'username': data['username'],
+            'email': data['email'],
+        }
+        response.set_cookie(key='access_token', value=data['access_token'], httponly=True)
+        response.data = (to_return)
+        return response
+    return Response({"error": "verification went wrong"}, status=status.HTTP_409_CONFLICT)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
