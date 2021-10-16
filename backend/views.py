@@ -1,5 +1,3 @@
-import http
-import json
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from .models import CustomUser
@@ -17,9 +15,13 @@ def signup (request):
     serializer = SignUpSerializer(data=info)
     if serializer.is_valid(raise_exception=True):
         serializer.save()
-        return Response({'User has been successfully registered': serializer.data})
-    else:
-        raise serializer.errors
+        response = Response()
+        user = CustomUser.objects.get(email=serializer.data['email'])
+        token = RefreshToken.for_user(user)
+        response.set_cookie(key="access_token", value=str(token.access_token), httponly=True)
+        response.data = ({'User has been successfully registered': serializer.data})
+        return response
+    raise serializer.errors
 
 class LogIn (APIView):
     def post (self, request):
