@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "django_samesite_none.middleware.SameSiteNoneMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     "corsheaders.middleware.CorsMiddleware",
@@ -53,6 +54,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# MIDDLEWARE_CLASSES = (
+#     'django_cookies_samesite.middleware.CookiesSameSite',
+# )
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -125,6 +130,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=183),
     'AUTH_COOKIE_HTTP_ONLY': True
 }
+
 
 AUTH_USER_MODEL = 'backend.CustomUser'
 # Internationalization
