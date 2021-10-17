@@ -59,9 +59,6 @@ MIDDLEWARE = [
 #     'django_cookies_samesite.middleware.CookiesSameSite',
 # )
 
-CORS_ALLOW_ALL_ORIGINS = True
-
-CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'Discord.urls'
 
@@ -131,6 +128,11 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_HTTP_ONLY': True
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 AUTH_USER_MODEL = 'backend.CustomUser'
 # Internationalization
