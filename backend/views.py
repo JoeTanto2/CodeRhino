@@ -1,8 +1,9 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from .models import CustomUser
+from rest_framework.generics import GenericAPIView
+from .models import CustomUser, Servers
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from .serializers import SignUpSerializer, GoogleSerializer, ServerCreationSerializer
@@ -71,4 +72,35 @@ def create_channel (request):
         return Response({"success": f"{serializer.data['server_name']} has been successfully crated"}, status=status.HTTP_201_CREATED)
     return Response({"error": "something went wrong"}, status=status.HTTP_409_CONFLICT)
 
+class ServerManipulations(viewsets.ViewSet):
 
+    def get(self, request, pk):
+        info = Servers.objects.filter(id=pk).first()
+        if info:
+            serializer = ServerCreationSerializer(info)
+            return Response(serializer.data)
+        return Response({"error": "server with this name was not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    def server_patch(self, request, pk):
+        user = request.user
+        server = Servers.objects.filter(id=pk).first()
+        if server:
+            if server.admin != user.id:
+                return Response({"error": "Only admin can make changes to the server"}, status=status.HTTP_403_FORBIDDEN)
+            info = request.data
+            serializer = ServerCreationSerializer(server, data=info, partial=True)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({"success": "Server's info has been successfully updated"}, status=status.HTTP_202_ACCEPTED)
+            return Response({'error': 'something went wrong'}, status=status.HTTP_304_NOT_MODIFIED)
+        return Response({"error": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+    def server_delete(self, request, pk):
+        user = request.user
+        server = Servers.objects.filter(id=pk).first()
+        if server:
+            if server.admin != user.id:
+                return Response({"error": "Only admin can delete the server"}, status=status.HTTP_403_FORBIDDEN)
+            server.delete()
+            return Response({"success": "The server has been succesfully deleted"}, status=status.HTTP_200_OK)
+        return Response({"error": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
