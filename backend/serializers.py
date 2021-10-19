@@ -24,14 +24,14 @@ class SignUpSerializer (serializers.ModelSerializer):
         email = validated_data['email']
         if email:
             if CustomUser.objects.filter(email=email).exists():
-                raise serializers.ValidationError('An account with this email already exists')
+                raise serializers.ValidationError({'email': 'An account with this email already exists'})
             if(re.fullmatch(re_email, email)):
                 instance = self.Meta.model(**validated_data)
                 instance.set_password(validated_data['password'])
                 instance.save()
                 return instance
             else:
-                message = 'The email is not valid! Please enter a valid email.'
+                message = {'email': 'The email is not valid! Please enter a valid email.'}
                 raise serializers.ValidationError(message)
 
 

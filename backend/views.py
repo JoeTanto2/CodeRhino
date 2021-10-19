@@ -20,12 +20,13 @@ def signup (request):
         user = CustomUser.objects.get(email=serializer.data['email'])
         token = RefreshToken.for_user(user)
         response.set_cookie(key="access_token", value=str(token.access_token), httponly=True)
-        response.data = ({'User has been successfully registered': serializer.data})
+        response.data = (serializer.data)
         return response
     raise serializer.errors
 
 class LogIn (APIView):
-    def post (self, request):
+    def post(self, request):
+        print("hi")
         info = request.data
         user = CustomUser.objects.filter(email=info['email']).first()
         if not user:
@@ -35,8 +36,18 @@ class LogIn (APIView):
         response = Response()
         token = RefreshToken.for_user(user)
         response.set_cookie(key="access_token", value=str(token.access_token), httponly=True)
-        response.data = ({"message": "you have successfully logged in"})
+        response.data = ({'username': user.username,
+                          'email': user.email
+                          })
         return response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def logout (request):
+    respone = Response(status=status.HTTP_205_RESET_CONTENT)
+    respone.delete_cookie(key="access_token")
+    respone.data = ({"message": "successfully logged out"})
+    return respone
 
 @api_view(['POST'])
 def googleAuth (request):
@@ -51,7 +62,7 @@ def googleAuth (request):
         response.set_cookie(key='access_token', value=data['access_token'], httponly=True)
         response.data = (to_return)
         return response
-    return Response({"error": "verification went wrong"}, status=status.HTTP_409_CONFLICT)
+    return Response({"verification": "Your google account could not be verified."}, status=status.HTTP_409_CONFLICT)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -86,21 +97,21 @@ class ServerManipulations(viewsets.ViewSet):
         server = Servers.objects.filter(id=pk).first()
         if server:
             if server.admin != user.id:
-                return Response({"error": "Only admin can make changes to the server"}, status=status.HTTP_403_FORBIDDEN)
+                return Response({"Permission error": "Only admin can make changes to the server"}, status=status.HTTP_403_FORBIDDEN)
             info = request.data
             serializer = ServerCreationSerializer(server, data=info, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return Response({"success": "Server's info has been successfully updated"}, status=status.HTTP_202_ACCEPTED)
+                return Response("Server's info has been successfully updated", status=status.HTTP_202_ACCEPTED)
             return Response({'error': 'something went wrong'}, status=status.HTTP_304_NOT_MODIFIED)
-        return Response({"error": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"server not found": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
 
     def server_delete(self, request, pk):
         user = request.user
         server = Servers.objects.filter(id=pk).first()
         if server:
             if server.admin != user.id:
-                return Response({"error": "Only admin can delete the server"}, status=status.HTTP_403_FORBIDDEN)
+                return Response({"Permission error": "Only admin can delete the server"}, status=status.HTTP_403_FORBIDDEN)
             server.delete()
-            return Response({"success": "The server has been succesfully deleted"}, status=status.HTTP_200_OK)
-        return Response({"error": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
+            return Response("The server has been successfully deleted", status=status.HTTP_200_OK)
+        return Response({"server not found": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
