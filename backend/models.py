@@ -68,3 +68,19 @@ class TextChannels (models.Model):
 
     def __str__(self):
         return f"{self.channel_name} id: {self.server_id.id}"
+
+class Comments(models.Model):
+    comment = models.CharField(max_length=100)
+    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    time = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.user_id
+
+class Blog(models.Model):
+    message = models.CharField(max_length=500)
+    date = models.DateTimeField(auto_now=True)
+    comments = models.ForeignKey(Comments, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.message[0:10]
