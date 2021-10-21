@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Servers
+from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer
 import re
 from . import google
 from decouple import config
@@ -72,3 +72,23 @@ class ServerCreationSerializer (serializers.ModelSerializer):
         instance.save()
         instance.user_id.add(instance.admin)
         return instance
+
+class ServerRequestSerializer(serializers.ModelSerializer):
+    message = serializers.CharField(required=False)
+    class Meta:
+        model = JoinServerRequests
+        fields = ['server_id', 'requested_by', 'message']
+
+class InvitationSerializer(serializers.ModelSerializer):
+    message = serializers.CharField(required=False)
+    class Meta:
+        model = InvitationsToServer
+        fields = '__all__'
+
+    def create(self, validated_data):
+        invitation_check = InvitationsToServer.objects.filter(server_id=validated_data['server_id'], user_invited=validated_data['user_invited'])
+        if not invitation_check:
+            instance = self.Meta.model(**validated_data)
+            instance.save()
+            return instance
+        return "Invitation for this user already exists."

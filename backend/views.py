@@ -1,12 +1,12 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
-from .models import CustomUser, Servers
+from .models import CustomUser, Servers, JoinServerRequests
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from .serializers import SignUpSerializer, GoogleSerializer, ServerCreationSerializer
+from .serializers import SignUpSerializer, GoogleSerializer, ServerCreationSerializer, ServerRequestSerializer, InvitationSerializer
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -26,7 +26,6 @@ def signup (request):
 
 class LogIn (APIView):
     def post(self, request):
-        print("hi")
         info = request.data
         user = CustomUser.objects.filter(email=info['email']).first()
         if not user:
@@ -86,18 +85,23 @@ def create_channel (request):
 class ServerManipulations(viewsets.ViewSet):
 
     def get(self, request, pk):
-        info = Servers.objects.filter(id=pk).first()
-        if info:
-            serializer = ServerCreationSerializer(info)
-            return Response(serializer.data)
-        return Response({"error": "server with this name was not found"}, status=status.HTTP_404_NOT_FOUND)
+        server =redis_client.get(f'server_{pk}')
+        if not server:
+            info = Servers.objects.filter(id=pk).first()
+            if info:
+                serializer = ServerCreationSerializer(info)
+                redis_client.set(f'server_{pk}', json.dumps(serializer.data), ex=10)
+                return Response(serializer.data)
+            return Response({"error": "server with this name was not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(json.loads(server))
+
 
     def server_patch(self, request, pk):
         user = request.user
         server = Servers.objects.filter(id=pk).first()
         if server:
             if server.admin != user.id:
-                return Response({"Permission error": "Only admin can make changes to the server"}, status=status.HTTP_403_FORBIDDEN)
+                return Response({"Permission error": "Only admin can make changes to the server."}, status=status.HTTP_403_FORBIDDEN)
             info = request.data
             serializer = ServerCreationSerializer(server, data=info, partial=True)
             if serializer.is_valid(raise_exception=True):
@@ -105,6 +109,19 @@ class ServerManipulations(viewsets.ViewSet):
                 return Response("Server's info has been successfully updated", status=status.HTTP_202_ACCEPTED)
             return Response({'error': 'something went wrong'}, status=status.HTTP_304_NOT_MODIFIED)
         return Response({"server not found": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+
+    def invite_to_server(self, request, pk):
+        server = Servers.objects.filter(id=pk).first()
+        if not server:
+            return Response({"Server not found": "Server with this ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        info = request.data
+        serializer = InvitationSerializer(data=info)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response({"Invitation alreadi exists": "Invitation for this user already exists"}, status=status.HTTP_409_CONFLICT)
 
     def server_delete(self, request, pk):
         user = request.user
@@ -115,3 +132,48 @@ class ServerManipulations(viewsets.ViewSet):
             server.delete()
             return Response("The server has been successfully deleted", status=status.HTTP_200_OK)
         return Response({"server not found": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+class JoinRequests (GenericAPIView):
+
+
+    def get(self, request, pk):
+        user = request.user
+        join_requests = JoinServerRequests.objects.filter(server_id=pk).exclude(response__gt=0).select_related()
+        if not join_requests:
+            return Response("There is not requests to join the server as of now", status=status.HTTP_200_OK)
+        if user.id != join_requests[0].server_id.admin:
+            return Response('Only admin of the server has access to this', status=status.HTTP_403_FORBIDDEN)
+        serializer = ServerRequestSerializer(join_requests, many=True)
+        return Response(serializer.data)
+
+
+
+    def post(self, request, pk):
+        user = request.user
+        server = Servers.objects.filter(id=pk).first()
+        if server:
+            if server.admin != user.id:
+                return Response({"Permission error": "Only admin has access to this page."},
+                                status=status.HTTP_403_FORBIDDEN)
+            info = request.data
+            join_request = JoinServerRequests.objects.filter(id=info['request_id']).select_related()
+            if not join_request:
+                return Response("request does not exist", status=status.HTTP_404_NOT_FOUND)
+
+            """
+            2 is True while 1 is False
+            """
+
+            if info['response'] == 2:
+                join_request.update(response=2)
+                server.user_id.add(join_request[0].requested_by)
+            else:
+                join_request.update(response=1)
+            return (Response(f"you have accepted {join_request[0].requested_by.username}'s join request",
+                             status=status.HTTP_202_ACCEPTED)
+                    if info['response'] == 2 else Response(
+                f"you have rejected {join_request[0].requested_by.username}'s join request"))
+
+        return Response({"server does not exist": "The server with this id does not exist"},
+                        status=status.HTTP_404_NOT_FOUND)
+

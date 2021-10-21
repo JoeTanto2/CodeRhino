@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from .managers import CustomUserManager
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 
 
@@ -40,6 +41,23 @@ class Servers (models.Model):
 
     def __str__(self):
         return self.server_name
+
+class JoinServerRequests (models.Model):
+    server_id = models.ForeignKey(Servers, on_delete=models.CASCADE)
+    requested_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    message = models.CharField(max_length=200, blank=True, null=True, default=None)
+    response = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(2)])
+
+    def __str__(self):
+        return f'requested by {self.requested_by.email} to {self.server_id.server_name}'
+
+class InvitationsToServer(models.Model):
+    server_id = models.ForeignKey(Servers, on_delete=models.CASCADE)
+    user_invited = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    message = models.CharField(max_length=200, blank=True, null=True, default=None)
+
+    def __str__(self):
+        return f'from {self.server_id} to {self.user_invited}'
 
 
 
