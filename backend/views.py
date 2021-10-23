@@ -1,3 +1,4 @@
+import json, redis
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
@@ -9,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from .serializers import SignUpSerializer, GoogleSerializer, ServerCreationSerializer, ServerRequestSerializer, InvitationSerializer
 from rest_framework.permissions import IsAuthenticated
 
+redis_client = redis.Redis(host="localhost", port=6379, db=0)
 
 @api_view(['POST'])
 def signup (request):
@@ -24,6 +26,9 @@ def signup (request):
         return response
     raise serializer.errors
 
+"""
+returns {"username": value, "email": value} + sets the access token in cookies
+"""
 class LogIn (APIView):
     def post(self, request):
         info = request.data
@@ -40,6 +45,7 @@ class LogIn (APIView):
                           })
         return response
 
+"""returns just a message of success"""
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def logout (request):
@@ -48,6 +54,9 @@ def logout (request):
     respone.data = ({"message": "successfully logged out"})
     return respone
 
+"""
+returns {"username": value, "email": value} + sets access token in cookies
+"""
 @api_view(['POST'])
 def googleAuth (request):
     serializer = GoogleSerializer(data=request.data)
@@ -63,12 +72,37 @@ def googleAuth (request):
         return response
     return Response({"verification": "Your google account could not be verified."}, status=status.HTTP_409_CONFLICT)
 
-@api_view(['GET'])
+
+
+
 @permission_classes([IsAuthenticated])
-def users (request):
+@api_view(["GET"])
+def user (request, pk):
+    user = redis_client.hget('users', pk)
+    if not user:
+        user = CustomUser.objects.filter(id=pk).first()
+        if not user:
+            return Response("User with this ID does not exist", status=status.HTTP_404_NOT_FOUND)
+        serializer = SignUpSerializer(user)
+        redis_client.hset('users', pk, json.dumps(serializer.data))
+        return Response(serializer.data)
+    return Response(json.loads(user))
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['PATCH'])
+def update_profile(request):
+    info = request.data
     user = request.user
-    serializer = SignUpSerializer(user)
-    return Response(serializer.data)
+    if user:
+        serializer = SignUpSerializer(user, data=info, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            redis_client.hset('users', user.id, json.dumps(serializer.data))
+            return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response({"update failed": "Update failed, please try again"}, status=status.HTTP_304_NOT_MODIFIED)
+
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -82,15 +116,20 @@ def create_channel (request):
         return Response({"success": f"{serializer.data['server_name']} has been successfully crated"}, status=status.HTTP_201_CREATED)
     return Response({"error": "something went wrong"}, status=status.HTTP_409_CONFLICT)
 
+
+@permission_classes([IsAuthenticated])
 class ServerManipulations(viewsets.ViewSet):
 
+    """
+    returns {"admin": value, "server_name": value, "server_picture": value or null}
+    """
     def get(self, request, pk):
-        server =redis_client.get(f'server_{pk}')
+        server = redis_client.hget('servers', pk)
         if not server:
             info = Servers.objects.filter(id=pk).first()
             if info:
                 serializer = ServerCreationSerializer(info)
-                redis_client.set(f'server_{pk}', json.dumps(serializer.data), ex=10)
+                redis_client.set(f'server_{pk}', json.dumps(serializer.data), ex=(120))
                 return Response(serializer.data)
             return Response({"error": "server with this name was not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response(json.loads(server))
@@ -116,7 +155,10 @@ class ServerManipulations(viewsets.ViewSet):
         if not server:
             return Response({"Server not found": "Server with this ID does not exist"}, status=status.HTTP_404_NOT_FOUND)
         user = request.user
+        if user.id != server.admin:
+            return Response("Only admin can invite to the server", status=status.HTTP_403_FORBIDDEN)
         info = request.data
+        info['server_id'] = pk
         serializer = InvitationSerializer(data=info)
         if serializer.is_valid():
             serializer.save()

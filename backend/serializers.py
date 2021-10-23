@@ -35,6 +35,9 @@ class SignUpSerializer (serializers.ModelSerializer):
                 raise serializers.ValidationError(message)
 
 
+
+
+
 class GoogleSerializer (serializers.Serializer):
     auth_token = serializers.CharField()
     def validate_auth_token (self, auth_token):
