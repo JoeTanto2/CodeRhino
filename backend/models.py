@@ -36,7 +36,7 @@ class Servers (models.Model):
     user_id = models.ManyToManyField(CustomUser)
     admin = models.IntegerField()
     server_name = models.CharField(max_length=100)
-    server_picture = models.ImageField(blank=True)
+    server_picture = models.ImageField(blank=True, null=True)
     created_on = models.DateField(auto_now_add=True)
 
     def __str__(self):

@@ -12,9 +12,10 @@ class SignUpSerializer (serializers.ModelSerializer):
     username = serializers.CharField(required=True)
     email = serializers.CharField(required=True)
     profile_pic = serializers.ImageField(required=False)
+    id = serializers.IntegerField(required=False)
     class Meta:
         model = CustomUser
-        fields = ['email', 'username', 'password', 'profile_pic']
+        fields = ['id', 'email', 'username', 'password', 'profile_pic']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -58,7 +59,7 @@ class GoogleSerializer (serializers.Serializer):
         return social_user_registration(user_id, provider, name, email)
 
 class ServerCreationSerializer (serializers.ModelSerializer):
-    server_picture = serializers.ImageField(required=False)
+    server_picture = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Servers
         fields = ['admin', 'server_name', 'server_picture']
