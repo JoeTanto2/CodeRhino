@@ -80,8 +80,8 @@ def googleAuth (request):
 
 
 
-@permission_classes([IsAuthenticated])
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def user (request):
     pk = request.query_params.get('id')
     if not pk:
@@ -185,8 +185,9 @@ class ServerManipulations(viewsets.ViewSet):
             return Response("The server has been successfully deleted", status=status.HTTP_200_OK)
         return Response({"server not found": "server is not found!"}, status=status.HTTP_404_NOT_FOUND)
 
-@permission_classes([IsAuthenticated])
+
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def my_invitations(request):
     user = request.user
     invitations = InvitationsToServer.objects.filter(user_invited=user)
@@ -196,8 +197,9 @@ def my_invitations(request):
     return Response(serializer.data)
 
 
-@permission_classes([IsAuthenticated])
+
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def my_invitations_response(request, pk):
     invitation_request = InvitationsToServer.objects.filter(id=pk).select_related().first()
     if not invitation_request:
