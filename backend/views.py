@@ -82,7 +82,12 @@ def googleAuth (request):
 
 @permission_classes([IsAuthenticated])
 @api_view(["GET"])
-def user (request, pk):
+def user (request):
+    pk = request.query_params.get('id')
+    if not pk:
+        user = request.user
+        serializer = SignUpSerializer(user)
+        return Response(serializer.data)
     user = redis_client.hget('users', pk)
     if not user:
         user = CustomUser.objects.filter(id=pk).first()
