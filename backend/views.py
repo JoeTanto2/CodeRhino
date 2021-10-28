@@ -2,12 +2,13 @@ import json, redis
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
-from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer
+from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer, BlogManager, Blog, Comments, CommentsManager
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from .serializers import SignUpSerializer, GoogleSerializer, ServerCreationSerializer, ServerRequestSerializer, InvitationSerializer
+from .serializers import (SignUpSerializer, GoogleSerializer, ServerCreationSerializer,
+ServerRequestSerializer, InvitationSerializer, BlogSerializer, CommentsSerializer)
 from rest_framework.permissions import IsAuthenticated
 
 redis_client = redis.Redis(host="localhost", port=6379, db=0)
@@ -48,6 +49,7 @@ class LogIn (APIView):
                           })
         return response
 
+
 """returns just a message of success"""
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -63,7 +65,7 @@ def logout (request):
 returns {"username": value, "email": value} + sets access token in cookies
 """
 @api_view(['POST'])
-def googleAuth (request):
+def googleAuth(request):
     serializer = GoogleSerializer(data=request.data)
     if serializer.is_valid(raise_exception=True):
         data = (serializer.validated_data['auth_token'])
@@ -259,4 +261,39 @@ class JoinRequests (GenericAPIView):
 
         return Response({"server does not exist": "The server with this id does not exist"},
                         status=status.HTTP_404_NOT_FOUND)
+
+def post_finder(blogs: dict, id: int):
+
+    for post in blogs:
+        if post['id'] == id:
+            return post
+    return None
+
+@api_view(['GET'])
+def blog(request):
+    params = dict(request.query_params)
+    blogs = redis_client.get('blogs')
+    if not blogs:
+        blogs = BlogManager.posts(BlogManager())
+        serializer_posts = BlogSerializer(blogs, many=True)
+        redis_client.set('blogs', json.dumps(serializer_posts.data), ex=(60 * 20))
+    blogs = json.loads(redis_client.get('blogs'))
+    if not params:
+        return Response(blogs)
+    elif 'post_id' in params.keys() and 'latest' in params.keys():
+        the_post = post_finder(blogs, int(params['post_id'][0]))
+        if not the_post:
+            return Response('Post with this ID does not exist', status=status.HTTP_404_NOT_FOUND)
+        comments = CommentsManager.retrieve_ten_from_latest(CommentsManager(), params['latest'][0])
+        serializer = CommentsSerializer(comments, many=True)
+        the_post['comments'] = serializer.data
+        return Response(the_post)
+    else:
+        the_post = post_finder(blogs, int(params['post_id'][0]))
+        if not the_post:
+            return Response('Post with this ID does not exist', status=status.HTTP_404_NOT_FOUND)
+        return Response(the_post)
+
+
+
 

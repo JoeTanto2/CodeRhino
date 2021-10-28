@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer
+from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer, Blog, Comments
 import re
 from . import google
 from decouple import config
@@ -58,6 +58,7 @@ class GoogleSerializer (serializers.Serializer):
         provider = 'google'
         return social_user_registration(user_id, provider, name, email)
 
+
 class ServerCreationSerializer (serializers.ModelSerializer):
     server_picture = serializers.ImageField(required=False, allow_null=True)
     class Meta:
@@ -96,3 +97,15 @@ class InvitationSerializer(serializers.ModelSerializer):
             instance.save()
             return instance
         return "Invitation for this user already exists."
+
+class BlogSerializer (serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    class Meta:
+        model = Blog
+        fields = ['id', 'message', 'date']
+
+class CommentsSerializer (serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+    class Meta:
+        model = Comments
+        fields = ['id', 'comment', 'user_id', 'time']

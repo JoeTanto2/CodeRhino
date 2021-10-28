@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (signup, LogIn, googleAuth, create_server,
-                    ServerManipulations, logout, JoinRequests, user, update_profile, my_invitations, my_invitations_response)
+ServerManipulations, logout, JoinRequests, user, update_profile, my_invitations, my_invitations_response, blog)
 
 urlpatterns = [
     path('signup/', signup),
@@ -18,5 +18,6 @@ urlpatterns = [
     })),
     path('requests/<str:pk>/', JoinRequests.as_view()),
     path('my_invitations/', my_invitations),
-    path('my_invitations_response/<str:pk>/', my_invitations_response)
+    path('my_invitations_response/<str:pk>/', my_invitations_response),
+    path('blog/', blog)
 ]
