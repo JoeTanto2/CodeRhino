@@ -85,10 +85,14 @@ class ServerRequestSerializer(serializers.ModelSerializer):
         fields = ['server_id', 'requested_by', 'message']
 
 class InvitationSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
     message = serializers.CharField(required=False)
+    server_name = serializers.StringRelatedField()
     class Meta:
         model = InvitationsToServer
-        fields = '__all__'
+        fields = ['id', 'server_name', 'message']
+
+
 
     def create(self, validated_data):
         invitation_check = InvitationsToServer.objects.filter(server_id=validated_data['server_id'], user_invited=validated_data['user_invited'])

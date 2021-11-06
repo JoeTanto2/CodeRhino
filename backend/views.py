@@ -45,7 +45,6 @@ class LogIn (APIView):
                             'id': user.id,
                             'username': user.username,
                             "email": user.email,
-                            'profile_picture': user.profile_pic
                           })
         return response
 
@@ -194,7 +193,7 @@ def my_invitations(request):
     user = request.user
     invitations = InvitationsToServer.objects.filter(user_invited=user)
     if not invitations:
-        return Response("There is no invitations as of now")
+        return Response([])
     serializer = InvitationSerializer(invitations, many=True)
     return Response(serializer.data)
 

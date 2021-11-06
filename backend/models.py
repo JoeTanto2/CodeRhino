@@ -52,7 +52,7 @@ class JoinServerRequests (models.Model):
         return f'requested by {self.requested_by.email} to {self.server_id.server_name}'
 
 class InvitationsToServer(models.Model):
-    server_id = models.ForeignKey(Servers, on_delete=models.CASCADE)
+    server_name = models.ForeignKey(Servers, on_delete=models.CASCADE)
     user_invited = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     message = models.CharField(max_length=200, blank=True, null=True, default=None)
 
