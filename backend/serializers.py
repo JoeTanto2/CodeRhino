@@ -10,14 +10,15 @@ from .register import social_user_registration
 
 class SignUpSerializer (serializers.ModelSerializer):
     username = serializers.CharField(required=True)
-    email = serializers.CharField(required=True)
     profile_pic = serializers.ImageField(required=False)
     id = serializers.IntegerField(required=False)
+    about = serializers.CharField(required=False, max_length=150)
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'username', 'password', 'profile_pic']
+        fields = ['id', 'email', 'username', 'about', 'password', 'profile_pic']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'email': {'write_only': True}
         }
 
     def create (self, validated_data):

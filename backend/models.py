@@ -10,7 +10,8 @@ providers = {'google': 'google', 'apple': 'apple', 'email': 'email', 'facebook':
 class CustomUser (AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50)
     email = models.CharField(max_length=50, unique=True)
-    profile_pic = models.ImageField(blank=True, null=True)
+    profile_pic = models.ImageField(blank=True, upload_to='pictures', default='pictures/default-pic.png')
+    about = models.CharField(blank=True, null=True, max_length=150)
     is_staff = models.BooleanField(default=False, blank=True)
     is_active = models.BooleanField(default=True, blank=True)
     is_email_verified = models.BooleanField(default=False, blank=True)
@@ -57,7 +58,7 @@ class InvitationsToServer(models.Model):
     message = models.CharField(max_length=200, blank=True, null=True, default=None)
 
     def __str__(self):
-        return f'from {self.server_id} to {self.user_invited}'
+        return f'from {self.server_name} to {self.user_invited}'
 
 
 

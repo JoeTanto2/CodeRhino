@@ -20,7 +20,8 @@ def signup (request):
     if serializer.is_valid(raise_exception=True):
         serializer.save()
         response = Response()
-        user = CustomUser.objects.get(email=serializer.data['email'])
+        print(serializer.data)
+        user = CustomUser.objects.get(id=serializer.data['id'])
         token = RefreshToken.for_user(user)
         response.set_cookie(key="access_token", value=str(token.access_token), httponly=True)
         response.data = serializer.data
@@ -210,11 +211,11 @@ def my_invitations_response(request, pk):
         return Response("You don't have a permission too accept/decline this invitation", status=status.HTTP_403_FORBIDDEN)
     info = request.data
     if info['response'] == True:
-        invitation_request.server_id.user_id.add(user)
+        invitation_request.server_name.user_id.add(user)
         invitation_request.delete()
-        return Response(f"You have successfully joined {invitation_request.server_id.server_name}")
+        return Response(f"You have successfully joined {invitation_request.server_name.server_name}")
     invitation_request.delete()
-    return Response(f"You have declined {invitation_request.server_id.server_name}'s invitation")
+    return Response(f"You have declined {invitation_request.server_name.server_name}'s invitation")
 
 @permission_classes([IsAuthenticated])
 class JoinRequests (GenericAPIView):
