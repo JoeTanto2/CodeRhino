@@ -1,23 +1,27 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.dispatch import receiver
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework import status
 from .managers import CustomUserManager
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import MaxValueValidator, MinValueValidator
-
-
+from django.db.models.signals import pre_save
 
 providers = {'google': 'google', 'apple': 'apple', 'email': 'email', 'facebook': 'facebook', 'twitter': 'twitter'}
+
 class CustomUser (AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=50)
     email = models.CharField(max_length=50, unique=True)
-    profile_pic = models.ImageField(blank=True, upload_to='pictures', default='pictures/default-pic.png')
+    profile_pic = models.ImageField(blank=True, default='pictures/default-pic.png')
     about = models.CharField(blank=True, null=True, max_length=150)
     is_staff = models.BooleanField(default=False, blank=True)
     is_active = models.BooleanField(default=True, blank=True)
     is_email_verified = models.BooleanField(default=False, blank=True)
     is_visible = models.BooleanField(default=True, blank=True)
     is_superuser = models.BooleanField(default=False)
-    authentication_type = models.CharField(max_length=50, default=providers['email'])
+    authentication_type = models.CharField(max_length=50, default='email')
 
     objects = CustomUserManager()
 
@@ -107,3 +111,9 @@ class Comments(models.Model):
 
     def __str__(self):
         return str(self.user_id)
+
+@receiver(pre_save, sender=CustomUser)
+def check(sender, instance, **kwargs):
+    instance.authentication_type = instance.authentication_type.lower()
+    if instance.authentication_type not in providers:
+        return

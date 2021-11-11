@@ -20,7 +20,6 @@ def signup (request):
     if serializer.is_valid(raise_exception=True):
         serializer.save()
         response = Response()
-        print(serializer.data)
         user = CustomUser.objects.get(id=serializer.data['id'])
         token = RefreshToken.for_user(user)
         response.set_cookie(key="access_token", value=str(token.access_token), httponly=True)
