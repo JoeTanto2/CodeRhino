@@ -295,4 +295,3 @@ def blog(request):
 
 
 
-

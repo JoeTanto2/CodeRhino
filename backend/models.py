@@ -7,7 +7,7 @@ from rest_framework import status
 from .managers import CustomUserManager
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_save
 
 providers = {'google': 'google', 'apple': 'apple', 'email': 'email', 'facebook': 'facebook', 'twitter': 'twitter'}
 
@@ -116,4 +116,11 @@ class Comments(models.Model):
 def check(sender, instance, **kwargs):
     instance.authentication_type = instance.authentication_type.lower()
     if instance.authentication_type not in providers:
+        instance.authentication_type = 'email'
         return
+
+@receiver(post_save, sender=Servers)
+def text_channel_creation(sender, instance, **kwargs):
+    if not TextChannels.objects.filter(server_id=instance).exists():
+        TextChannels.objects.create(server_id=instance, channel_name="General")
+    return
