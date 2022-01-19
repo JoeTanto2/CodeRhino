@@ -77,6 +77,7 @@ class ServerCreationSerializer (serializers.ModelSerializer):
         instance = self.Meta.model(**validated_data)
         instance.save()
         instance.user_id.add(instance.admin)
+
         return instance
 
 class ServerRequestSerializer(serializers.ModelSerializer):

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from .forms import UserCreationForm, UserChangeForm, CustomUserChangeForm, CustomUserCreationForm
-from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer, Blog, Comments
+from .models import CustomUser, Servers, JoinServerRequests, InvitationsToServer, Blog, Comments, TextChannels
 
 
 class CustomUserAdmin(UserAdmin):
@@ -31,3 +31,4 @@ admin.site.register(JoinServerRequests)
 admin.site.register(InvitationsToServer)
 admin.site.register(Comments)
 admin.site.register(Blog)
+admin.site.register(TextChannels)
